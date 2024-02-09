@@ -1,0 +1,6 @@
+build/
+impl/
+temp/
+*.gprj.user
+*.vcd
+*.gtkw
