@@ -65,18 +65,9 @@ module main
     //////////////////////////////////////////////////////////////////////
     // DRAW
 
-    always @(posedge LCD_CLK) begin
-        if(BTN_USER) begin
-            pixel_color <= pixel_x >= 100 && pixel_x < 200 && pixel_y >= 100 && pixel_y < 200 ? 16'b1111111111111111 : 16'b0;
-        end
-        else begin
-            pixel_color <= pixel_x >= 0 && pixel_x < 100 && pixel_y >= 0 && pixel_y < 100 ? 16'b1111100000011111 : 16'b0;
-        end
-    end
-
-    assign LCD_R = LCD_DEN ? pixel_color[15:11] : 5'b0;
-    assign LCD_G = LCD_DEN ? pixel_color[10:5] : 6'b0;
-    assign LCD_B = LCD_DEN ? pixel_color[4:0] : 5'b0;
+    assign LCD_R = LCD_DEN ? (pixel_x[5] ^ pixel_y[5] ? 5'b11111 : 5'b0) : 5'b0;
+    assign LCD_G = LCD_DEN ? (pixel_x[6] ^ pixel_y[6] ? 6'b111111 : 6'b0 ) : 6'b0;
+    assign LCD_B = LCD_DEN ? (pixel_x[7] ^ pixel_y[7] ? 5'b11111 : 5'b0) : 5'b0;
 
     //////////////////////////////////////////////////////////////////////
     // LED
