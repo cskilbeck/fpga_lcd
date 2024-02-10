@@ -7,6 +7,11 @@ PROJECT		=	lcd
 MAIN_MODULE =	main
 
 SOURCES		=	main.v \
+				lcd_driver.v \
+
+HEADERS		=	lcd_h.v
+
+SIM_SOURCES	=	lcd_tb.v \
 				lcd_driver.v
 
 ######################################################################
@@ -16,7 +21,7 @@ OUTPUT = ${BUILD}/${PROJECT}
 all: load
 
 # Synthesis
-${OUTPUT}.json: ${SOURCES}
+${OUTPUT}.json: ${SOURCES} ${HEADERS}
 	yosys -p "read_verilog -sv ${SOURCES}; synth_gowin -top ${MAIN_MODULE} -json ${OUTPUT}.json"
 
 # Place and Route
@@ -35,9 +40,9 @@ load: ${OUTPUT}.fs
 flash: ${OUTPUT}.fs
 	openFPGALoader -b ${BOARD} -f ${OUTPUT}.fs -d ${PORT} -r
 
-# Test/Simulation
-graph: lcd_tb.v lcd_driver.v
-	iverilog -o ${OUTPUT}.o -s test lcd_driver.v lcd_tb.v
+# Simulation
+simulate: ${SIM_SOURCES} ${HEADERS}
+	iverilog -o ${OUTPUT}.o -s test ${SIM_SOURCES}
 	vvp ${OUTPUT}.o
 
 .PHONY: load

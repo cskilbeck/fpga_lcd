@@ -1,37 +1,68 @@
-`define H_PULSE_WIDTH 21
-`define H_BACK_PORCH 22
-`define H_DISPLAY 479
-`define H_FRONT_PORCH 1
+`include "lcd_h.v"
 
-`define V_PULSE_WIDTH 1
-`define V_BACK_PORCH 6
-`define V_DISPLAY 271
-`define V_FRONT_PORCH 6
+`ifdef LCD_800_480
+
+    `define H_SYNC_WIDTH 2
+    `define H_BACK_PORCH 46
+    `define H_DISPLAY 800
+    `define H_FRONT_PORCH 210
+
+    `define V_SYNC_WIDTH 5
+    `define V_BACK_PORCH 23
+    `define V_DISPLAY 480
+    `define V_FRONT_PORCH 22
+
+`elsif LCD_480_272
+
+    `define H_SYNC_WIDTH 21
+    `define H_BACK_PORCH 22
+    `define H_DISPLAY 480
+    `define H_FRONT_PORCH 1
+
+    `define V_SYNC_WIDTH 1
+    `define V_BACK_PORCH 6
+    `define V_DISPLAY 272
+    `define V_FRONT_PORCH 6
+
+`else
+!error! "`define LCD_480_272 OR LCD_800_480"
+`endif
+
+`define H_SYNC_TOTAL        `H_SYNC_WIDTH
+`define H_BACK_PORCH_TOTAL  `H_SYNC_TOTAL + `H_BACK_PORCH
+`define H_DISPLAY_TOTAL     `H_BACK_PORCH_TOTAL + `H_DISPLAY
+`define H_FRONT_PORCH_TOTAL `H_DISPLAY_TOTAL + `H_FRONT_PORCH
+
+`define V_SYNC_TOTAL        `V_SYNC_WIDTH
+`define V_BACK_PORCH_TOTAL  `V_SYNC_TOTAL + `V_BACK_PORCH
+`define V_DISPLAY_TOTAL     `V_BACK_PORCH_TOTAL + `V_DISPLAY
+`define V_FRONT_PORCH_TOTAL `V_DISPLAY_TOTAL + `V_FRONT_PORCH
 
 module lcd_driver(
 
-    input wire VGA_CLK,
+    input wire PIXEL_CLK,
     input wire RESETn,
     output wire HSYNC,
     output wire VSYNC,
     output wire DEN,
-    output wire [9:0] XPOS,
-    output wire [9:0] YPOS
+    output wire [10:0] XPOS,
+    output wire [10:0] YPOS
 );
 
-    parameter [9:0] HORIZ_PULSE_WIDTH     = 9'd `H_PULSE_WIDTH;
-    parameter [9:0] HORIZ_BACK_PORCH      = 9'd `H_PULSE_WIDTH + `H_BACK_PORCH;
-    parameter [9:0] HORIZ_DISPLAY_ACTIVE  = 9'd `H_PULSE_WIDTH + `H_BACK_PORCH + `H_DISPLAY;
-    parameter [9:0] HORIZ_END_OF_LINE     = 9'd `H_PULSE_WIDTH + `H_BACK_PORCH + `H_DISPLAY  + `H_FRONT_PORCH - 1;
-    parameter [9:0] HORIZ_FRONT_PORCH     = 9'd `H_PULSE_WIDTH + `H_BACK_PORCH + `H_DISPLAY  + `H_FRONT_PORCH;
+    parameter [10:0] HORIZ_SYNC_END        = 10'd `H_SYNC_TOTAL;
+    parameter [10:0] HORIZ_BACK_PORCH_END  = 10'd `H_BACK_PORCH_TOTAL;
+    parameter [10:0] HORIZ_DISPLAY_END     = 10'd `H_DISPLAY_TOTAL;
+    parameter [10:0] HORIZ_FRONT_PORCH_END = 10'd `H_FRONT_PORCH_TOTAL;
 
-    parameter [9:0] VERT_PULSE_WIDTH      = 9'd `V_PULSE_WIDTH;
-    parameter [9:0] VERT_BACK_PORCH       = 9'd `V_PULSE_WIDTH + `V_BACK_PORCH;
-    parameter [9:0] VERT_DISPLAY_ACTIVE   = 9'd `V_PULSE_WIDTH + `V_BACK_PORCH + `V_DISPLAY;
-    parameter [9:0] VERT_FRONT_PORCH      = 9'd `V_PULSE_WIDTH + `V_BACK_PORCH + `V_DISPLAY  + `V_FRONT_PORCH;
+    parameter [10:0] HORIZ_END_OF_LINE     = HORIZ_FRONT_PORCH_END - 10'd 1;
 
-    reg [9:0] h_counter;
-    reg [9:0] v_counter;
+    parameter [10:0] VERT_SYNC_END         = 10'd `V_SYNC_TOTAL;
+    parameter [10:0] VERT_BACK_PORCH_END   = 10'd `V_FRONT_PORCH_TOTAL;
+    parameter [10:0] VERT_DISPLAY_END      = 10'd `V_DISPLAY_TOTAL;
+    parameter [10:0] VERT_FRONT_PORCH_END  = 10'd `V_FRONT_PORCH_TOTAL;
+
+    reg [10:0] h_counter;
+    reg [10:0] v_counter;
 
     reg hsync;
     reg vsync;
@@ -40,60 +71,62 @@ module lcd_driver(
 
     reg eol;
  
-    always @(posedge VGA_CLK or negedge RESETn) begin
+    always @(posedge PIXEL_CLK or negedge RESETn) begin
         if(!RESETn) begin
             hsync <= 1'b1;
             h_den <= 1'b0;
             eol <= 1'b0;
-            h_counter <= 9'b0;
+            h_counter <= 10'b0;
         end
         else begin
-            if(h_counter == HORIZ_PULSE_WIDTH) begin
+            if(h_counter == HORIZ_SYNC_END) begin
                 hsync <= 1'b1;
             end
-            if(h_counter == HORIZ_BACK_PORCH) begin
+            if(h_counter == HORIZ_BACK_PORCH_END) begin
                 h_den <= 1'b1;
             end
-            if(h_counter == HORIZ_DISPLAY_ACTIVE) begin
+            if(h_counter == HORIZ_DISPLAY_END) begin
                 h_den <= 1'b0;
             end
             if(h_counter == HORIZ_END_OF_LINE) begin
                 eol <= 1'b1;
                 h_den <= 1'b0;
             end
-            if(h_counter == HORIZ_FRONT_PORCH) begin
+            if(h_counter == HORIZ_FRONT_PORCH_END) begin
                 eol <= 1'b0;
                 hsync <= 1'b0;
-                h_counter <= 9'd0;
+                h_counter <= 10'd0;
             end
             else begin
-                h_counter <= h_counter + 9'b1;
+                h_counter <= h_counter + 10'b1;
             end
         end
     end
 
-    always @(posedge VGA_CLK or negedge RESETn) begin
+    always @(posedge PIXEL_CLK or negedge RESETn) begin
         if(!RESETn) begin
             vsync <= 1'b1;
-            v_counter <= 9'b0;
+            v_counter <= 10'b0;
             v_den <= 1'b0;
         end
         else if (eol) begin
-            if(v_counter == VERT_PULSE_WIDTH) begin
+            if(v_counter == 10'd0) begin
+                vsync <= 1'b0;
+            end
+            if(v_counter == VERT_SYNC_END) begin
                 vsync <= 1'b1;
             end
-            if(v_counter == VERT_BACK_PORCH) begin
+            if(v_counter == VERT_BACK_PORCH_END) begin
                 v_den <= 1'b1;
             end
-            if(v_counter == VERT_DISPLAY_ACTIVE) begin
+            if(v_counter == VERT_DISPLAY_END) begin
                 v_den <= 1'b0;
             end
-            if(v_counter == VERT_FRONT_PORCH) begin
-                vsync <= 1'b0;
-                v_counter <= 9'd0;
+            if(v_counter == VERT_FRONT_PORCH_END) begin
+                v_counter <= 10'd0;
             end
             else begin
-                v_counter <= v_counter + 9'b1;
+                v_counter <= v_counter + 10'b1;
             end
         end
     end
@@ -101,7 +134,7 @@ module lcd_driver(
     assign HSYNC = hsync;
     assign VSYNC = vsync;
     assign DEN = h_den && v_den;
-    assign XPOS = h_den ? (h_counter - HORIZ_BACK_PORCH) : 9'b0;
-    assign YPOS = h_den ? (v_counter - VERT_BACK_PORCH) : 9'b0;
+    assign XPOS = DEN ? (h_counter - HORIZ_BACK_PORCH_END - 1) : 10'b0;
+    assign YPOS = DEN ? (v_counter - VERT_BACK_PORCH_END - 1) : 10'b0;
 
 endmodule

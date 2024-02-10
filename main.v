@@ -1,3 +1,5 @@
+`include "lcd_h.v"
+
 module main
 (
     input           BTN_RESET,
@@ -9,11 +11,11 @@ module main
     output          LCD_VSYNC,
     output          LCD_DEN,
 
-    output  wire [4:0]   LCD_R,
-    output  wire [5:0]   LCD_G,
-    output  wire [4:0]   LCD_B,
+    output [4:0]    LCD_R,
+    output [5:0]    LCD_G,
+    output [4:0]    LCD_B,
 
-    output  logic [5:0]   LED
+    output [5:0]    LED
 );
 
     //////////////////////////////////////////////////////////////////////
@@ -22,15 +24,19 @@ module main
     wire CLK_SYS;
     wire CLK_LOCK;
 
-    rPLL #  (
+    rPLL #(
             .FCLKIN("27"),
-            .IDIV_SEL(0),       // -> PFD = 27 MHz (range: 3-400 MHz)
-            .FBDIV_SEL(9),      // -> CLKOUT = 270 MHz (range: 3.125-600 MHz)
-            .DYN_SDIV_SEL(30),
-            .ODIV_SEL(2)        // -> VCO = 540 MHz (range: 400-1200 MHz)
-            )
-            pll
-            (
+            .IDIV_SEL(0),
+            .FBDIV_SEL(9),
+`ifdef LCD_800_480
+            .DYN_SDIV_SEL(8),   // 33.75 MHz
+`elsif LCD_480_272
+            .DYN_SDIV_SEL(30),  // 9MHz
+`else
+!error! "`define LCD_480_272 OR LCD_800_480"
+`endif
+            .ODIV_SEL(2)
+    ) pll (
             .CLKOUTP(),
             .CLKOUTD3(),
             .RESET(1'b0),
@@ -42,18 +48,16 @@ module main
             .PSDA(4'b0),
             .DUTYDA(4'b0),
             .FDLY(4'b0),
-            .CLKIN(XTAL_IN),        // 27 MHz
-            .CLKOUT(CLK_SYS),       // 270 MHz
-            .CLKOUTD(LCD_CLK),      // 9 MHz
+            .CLKIN(XTAL_IN),
+            .CLKOUT(CLK_SYS),
+            .CLKOUTD(LCD_CLK),  
             .LOCK(CLK_LOCK)
-            );
+    );
 
-    logic [15:0] pixel_color = 16'hf00f;
+    reg [10:0] pixel_x;
+    reg [10:0] pixel_y;
 
-    logic [9:0] pixel_x;
-    logic [9:0] pixel_y;
-
-    lcd_driver lcd( .VGA_CLK(LCD_CLK),
+    lcd_driver lcd( .PIXEL_CLK(LCD_CLK),
                     .RESETn(BTN_RESET),
                     .HSYNC(LCD_HSYNC),
                     .VSYNC(LCD_VSYNC),
@@ -65,19 +69,50 @@ module main
     //////////////////////////////////////////////////////////////////////
     // DRAW
 
-    assign LCD_R = LCD_DEN ? (pixel_x[5] ^ pixel_y[5] ? 5'b11111 : 5'b0) : 5'b0;
-    assign LCD_G = LCD_DEN ? (pixel_x[6] ^ pixel_y[6] ? 6'b111111 : 6'b0 ) : 6'b0;
-    assign LCD_B = LCD_DEN ? (pixel_x[7] ^ pixel_y[7] ? 5'b11111 : 5'b0) : 5'b0;
+`define OFF5 5'b00000
+`define OFF6 6'b000000
+
+`define BG5 5'b00000
+`define BG6 6'b000000
+
+`define ON5 5'b11111
+`define ON6 6'b111111
+
+    reg [7:0] box_x = 8'b0;
+    reg [7:0] box_y = 8'b0;
+
+    always @(negedge LCD_VSYNC) begin
+        box_x <= box_x + 1'b1;
+        box_y <= box_y + 1'b1;
+    end
+
+    assign LCD_R =  !LCD_DEN                                        ?   `OFF5   :
+                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG5    :
+                    pixel_x[5] ^ pixel_y[5]                         ?   `ON5    :
+                                                                        `OFF5   ;
+
+    assign LCD_G =  !LCD_DEN                                        ?   `OFF6   :
+                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG6    :
+                    pixel_x[6] ^ pixel_y[6]                         ?   `ON6    :
+                                                                        `OFF6   ;
+
+    assign LCD_B =  !LCD_DEN                                        ?   `OFF5   :
+                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG5    :
+                    pixel_x[7] ^ pixel_y[7]                         ?   `ON5    :
+                                                                        `OFF5   ;
 
     //////////////////////////////////////////////////////////////////////
     // LED
 
-    logic [31:0] counter;
+    reg [31:0] counter;
+    reg [5:0] led_reg;
+
+`define LED_DELAY 32'd 6750000
 
     always @(posedge XTAL_IN or negedge BTN_RESET) begin
        if (!BTN_RESET)
            counter <= 32'd0;
-       else if (counter < 32'd6_750_000)
+       else if (counter < `LED_DELAY)
            counter <= counter + 1;
        else
            counter <= 32'd0;
@@ -85,11 +120,12 @@ module main
 
     always @(posedge XTAL_IN or negedge BTN_RESET) begin
        if (!BTN_RESET)
-           LED <= 6'b111110;
-       else if (counter == 32'd6_750_000)
-           LED[5:0] <= {LED[0],LED[5:1]};
-       else
-           LED <= LED;
+           led_reg <= 6'b111110;
+       else if (counter == `LED_DELAY)
+           led_reg[5:0] <= {led_reg[0],led_reg[5:1]};
+
     end
+
+    assign LED = led_reg;
 
 endmodule
