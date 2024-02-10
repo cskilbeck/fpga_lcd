@@ -30,8 +30,6 @@ module test();
     wire [5:0] LCD_G;
     wire [4:0] LCD_B;
 
-    reg [15:0] pixel_color = 16'b0;
-
     wire [9:0] pixel_x;
     wire [9:0] pixel_y;
 

@@ -7,8 +7,7 @@ PROJECT		=	lcd
 MAIN_MODULE =	main
 
 SOURCES		=	main.v \
-				lcd_driver.v \
-				gowin_rpll.v
+				lcd_driver.v
 
 ######################################################################
 
@@ -37,8 +36,8 @@ flash: ${OUTPUT}.fs
 	openFPGALoader -b ${BOARD} -f ${OUTPUT}.fs -d ${PORT} -r
 
 # Test/Simulation
-graph: vga_driver.v lcd_tb.v lcd_driver.v
-	iverilog -o ${OUTPUT}.o -s test lcd_driver.v vga_driver.v lcd_tb.v
+graph: lcd_tb.v lcd_driver.v
+	iverilog -o ${OUTPUT}.o -s test lcd_driver.v lcd_tb.v
 	vvp ${OUTPUT}.o
 
 .PHONY: load
