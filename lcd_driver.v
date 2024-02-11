@@ -110,9 +110,6 @@ module lcd_driver(
             v_den <= 1'b0;
         end
         else if (eol) begin
-            if(v_counter == 10'd0) begin
-                vsync <= 1'b0;
-            end
             if(v_counter == VERT_SYNC_END) begin
                 vsync <= 1'b1;
             end
@@ -124,6 +121,7 @@ module lcd_driver(
             end
             if(v_counter == VERT_FRONT_PORCH_END) begin
                 v_counter <= 10'd0;
+                vsync <= 1'b0;
             end
             else begin
                 v_counter <= v_counter + 10'b1;
