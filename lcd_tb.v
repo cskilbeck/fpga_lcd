@@ -30,10 +30,10 @@ module test();
     wire [5:0] LCD_G;
     wire [4:0] LCD_B;
 
-    wire [9:0] pixel_x;
-    wire [9:0] pixel_y;
+    wire [10:0] pixel_x;
+    wire [10:0] pixel_y;
 
-    lcd_driver lcd( .VGA_CLK(clk),
+    lcd_driver lcd( .PIXEL_CLK(clk),
                     .RESETn(reset_n),
                     .HSYNC(LCD_HSYNC),
                     .VSYNC(LCD_VSYNC),
