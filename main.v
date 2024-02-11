@@ -88,23 +88,28 @@ module main
     reg [7:0] box_y = 8'b0;
 
     always @(negedge LCD_VSYNC) begin
-        box_x <= box_x + 1'b1;
-        box_y <= box_y + 1'b1;
+        if(BTN_USER) begin
+            box_x <= box_x + 4'd 3;
+            box_y <= box_y + 4'd 2;
+        end
     end
 
+    wire [10:0] ox;
+    wire [10:0] oy;
+
+    assign ox = pixel_x[10:0] + box_x[7:0];
+    assign oy = pixel_y[10:0] + box_y[7:0];
+
     assign LCD_R =  !LCD_DEN                                        ?   `OFF5   :
-                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG5    :
-                    pixel_x[5] ^ pixel_y[5]                         ?   `ON5    :
+                    ox[5] ^ oy[5]                                   ?   `ON5    :
                                                                         `OFF5   ;
 
     assign LCD_G =  !LCD_DEN                                        ?   `OFF6   :
-                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG6    :
-                    pixel_x[6] ^ pixel_y[6]                         ?   `ON6    :
+                    ox[6] ^ oy[6]                                   ?   `ON6    :
                                                                         `OFF6   ;
 
     assign LCD_B =  !LCD_DEN                                        ?   `OFF5   :
-                    pixel_x[7:0] < box_x || pixel_y[7:0] < box_y    ?   `BG5    :
-                    pixel_x[7] ^ pixel_y[7]                         ?   `ON5    :
+                    ox[7] ^ oy[7]                                   ?   `ON5    :
                                                                         `OFF5   ;
 
     //////////////////////////////////////////////////////////////////////
