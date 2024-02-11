@@ -21,6 +21,18 @@ module main
     //////////////////////////////////////////////////////////////////////
     // PLL (GW1NR-9C C6/I5 -Tang Nano 9K proto dev board)
 
+`ifdef LCD_800_480
+
+    `define PLL_SDIV_SEL 8
+
+`elsif LCD_480_272
+
+    `define PLL_SDIV_SEL 30
+
+`else
+    !error! "`define LCD_480_272 OR LCD_800_480"
+`endif
+
     wire CLK_SYS;
     wire CLK_LOCK;
 
@@ -28,13 +40,7 @@ module main
             .FCLKIN("27"),
             .IDIV_SEL(0),
             .FBDIV_SEL(9),
-`ifdef LCD_800_480
-            .DYN_SDIV_SEL(8),   // 33.75 MHz
-`elsif LCD_480_272
-            .DYN_SDIV_SEL(30),  // 9MHz
-`else
-!error! "`define LCD_480_272 OR LCD_800_480"
-`endif
+            .DYN_SDIV_SEL(`PLL_SDIV_SEL),  // 9MHz or 33.75 MHz
             .ODIV_SEL(2)
     ) pll (
             .CLKOUTP(),
