@@ -41,12 +41,4 @@ module test();
                     .XPOS(pixel_x),
                     .YPOS(pixel_y) );
 
-    reg [7:0] box_x = 8'b0;
-    reg [7:0] box_y = 8'b0;
-
-    always @(negedge LCD_VSYNC) begin
-        box_x <= box_x + 1'b1;
-        box_y <= box_y + 1'b1;
-    end
-
 endmodule
