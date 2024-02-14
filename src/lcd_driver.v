@@ -45,6 +45,7 @@ module lcd_driver(
     output wire HSYNC,
     output wire VSYNC,
     output wire DEN,
+    output wire LINE,
     output wire [10:0] XPOS,
     output wire [10:0] YPOS
 );
@@ -68,6 +69,7 @@ module lcd_driver(
     reg vsync;
     reg h_den;
     reg v_den;
+    reg line;
 
     reg eol;
  
@@ -79,6 +81,9 @@ module lcd_driver(
             h_counter <= 10'b0;
         end
         else begin
+            if(h_counter == HORIZ_SYNC_END - 1) begin
+                line <= 1'b1;
+            end
             if(h_counter == HORIZ_SYNC_END) begin
                 hsync <= 1'b1;
             end
@@ -86,6 +91,7 @@ module lcd_driver(
                 h_den <= 1'b1;
             end
             if(h_counter == HORIZ_DISPLAY_END) begin
+                line <= 1'b0;
                 h_den <= 1'b0;
             end
             if(h_counter == HORIZ_END_OF_LINE) begin
@@ -132,7 +138,8 @@ module lcd_driver(
     assign HSYNC = hsync;
     assign VSYNC = vsync;
     assign DEN = h_den && v_den;
-    assign XPOS = DEN ? (h_counter - HORIZ_BACK_PORCH_END - 1) : 10'b0;
-    assign YPOS = DEN ? (v_counter - VERT_BACK_PORCH_END - 1) : 10'b0;
+    assign LINE = line;
+    assign XPOS = LINE ? (h_counter - HORIZ_BACK_PORCH_END) : 10'd0;
+    assign YPOS = LINE ? v_counter : 10'd0;
 
 endmodule
