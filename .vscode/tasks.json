@@ -10,7 +10,20 @@
                 "-c",
                 "source ~/setup_path.sh ; make"
             ],
-            "problemMatcher": [],
+            "problemMatcher": [
+                {
+                    "fileLocation": "autoDetect",
+                    "owner": "make",
+                    "source": "make",
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):\\s+(ERROR):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "severity": 3,
+                        "message": 4,
+                    },
+                },
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
